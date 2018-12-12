@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<configuration>
+
+	<appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder>
+			<pattern>[%d{yyyy-MM-dd HH:mm:ss}] %p %c{50}:%L - %m%n</pattern>
+			<charset class="java.nio.charset.Charset">UTF-8</charset>
+		</encoder>
+	</appender>
+	
+	<appender name="file" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<File>mongodb-proxy.log</File>
+		<Append>true</Append>
+		<encoder>
+			<pattern>[%d{yyyy-MM-dd HH:mm:ss}] %p [ %thread] %c{1}:%L - %m%n</pattern>
+			<charset class="java.nio.charset.Charset">UTF-8</charset>
+		</encoder>
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<fileNamePattern>mongodb-proxy.log.%d{yyyy-MM-dd}</fileNamePattern>
+			<maxHistory>1</maxHistory> 
+		</rollingPolicy>
+	</appender>
+	
+	<logger name="org.springframework" level="WARN" />
+	<logger name="org.springframework.data.mongodb" level="debug" />
+	<logger name="org.jboss.resteasy.plugins" level="WARN" />
+	<logger name="org.hibernate.validator" level="WARN" />
+	<logger name="org.jose4j" level="WARN" />
+	<logger name="net.rubyeye.xmemcached" level="ERROR" />
+	<logger name="com.google.code" level="ERROR" />
+	<logger name="org.dozer" level="WARN" />
+	<logger name="org.apache.http" level="WARN" />
+	<logger name="org.apache.commons.beanutils" level="WARN" />
+	<logger name="org.mongodb.driver" level="DEBUG" />
+	<logger name="org.springframework.data.mongodb.core.MongoDbUtils" level="DEBUG" />
+	
+	<root level="debug">
+		<appender-ref ref="console" />
+		<appender-ref ref="file" />
+	</root>
+</configuration>
