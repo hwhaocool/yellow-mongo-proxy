@@ -33,23 +33,30 @@ import java.util.concurrent.Executors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.stereotype.Service;
+
+import yellow.mongo.proxy.config.Config;
 
 /**
  *
  * @author Thibault Debatty
  */
-public class ProxyServer {
+@Service
+public class ProxyServer implements CommandLineRunner {
 
     private final Logger logger = LoggerFactory.getLogger(ProxyServer.class);
     
     private static final ExecutorService EXECUTOR_SERVICE = (ExecutorService) Executors.newFixedThreadPool(5);
+    
+    @Autowired
+    private Config config;
 
-    private final int port;
     private String mongo_ip = "119.23.235.71";
     private int mongo_port = 27017;
 
-    private final HashMap<String, LinkedList<Listener>> listeners
-            = new HashMap<>();
+    private final HashMap<String, LinkedList<Listener>> listeners  = new HashMap<>();
 
     /**
      * Build a mongo proxy, specifying the address of the real mongo server.
@@ -57,10 +64,8 @@ public class ProxyServer {
      * @param mongo_ip IP of the MONGODB database serve.
      * @param mongo_port port of the MONGODB database serve.
      */
-    public ProxyServer(
-            final int port, final String mongo_ip, final int mongo_port) {
+    public ProxyServer( final int port, final String mongo_ip, final int mongo_port) {
         this.mongo_ip = mongo_ip;
-        this.port = port;
         this.mongo_port = mongo_port;
 
     }
@@ -70,26 +75,33 @@ public class ProxyServer {
      *
      * @param port port on which the proxy will listen.
      */
-    public ProxyServer(final int port) {
-        this.port = port;
+    public ProxyServer() {
+        
     }
 
     /**
      * Run forever.
      */
-    public final void run() {
+    public final void run(String... args) {
 
         try {
+            
+            int port = config.getSocketPort();
+            
+            String mongoUri = config.getMongoClientUri();
+            
+//            int 
 
             // Wait for client connection...
             ServerSocket socket = new ServerSocket(port);
-//            socket.
             
             logger.info("start port at {}", port);
 
             while (true) {
                 Socket client = socket.accept();
                 logger.info("Connected from {}", client.getRemoteSocketAddress());
+                
+                logger.info("Connected from {}", client.getInetAddress());
                 
                 EXECUTOR_SERVICE.execute( new ConnectionHandler(client, mongo_ip, mongo_port, listeners));
             }
