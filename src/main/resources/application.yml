@@ -1,0 +1,21 @@
+###
+
+
+server:
+  # web listen port
+  port: 10088
+
+
+#socket listen port
+socketPort: 9632
+
+#mongodb config
+mongo-client-uri: mongodb://fanggeek:fanggeek!%40#dev@dds-wz9d69c504cfac541873-pub.mongodb.rds.aliyuncs.com:3717,dds-wz9d69c504cfac542788-pub.mongodb.rds.aliyuncs.com:3717/admin?replicaSet=mgset-4721611
+mongo-database: fanggeek
+mongo-connections-per-host: 50
+
+# mongodb connections count
+socketCount: 50
+
+#
+client-max: 1
