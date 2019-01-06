@@ -38,6 +38,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Service;
 
 import yellow.mongo.proxy.config.Config;
+import yellow.mongo.proxy.service.ConnectionHandlerService;
 
 /**
  *
@@ -48,7 +49,7 @@ public class ProxyServer implements CommandLineRunner {
 
     private final Logger logger = LoggerFactory.getLogger(ProxyServer.class);
     
-    private static final ExecutorService EXECUTOR_SERVICE = (ExecutorService) Executors.newFixedThreadPool(5);
+    private static final ExecutorService EXECUTOR_SERVICE = (ExecutorService) Executors.newFixedThreadPool(10);
     
     @Autowired
     private Config config;
@@ -73,7 +74,6 @@ public class ProxyServer implements CommandLineRunner {
     /**
      * Build a mongo proxy using default mongo server (localhost:27017).
      *
-     * @param port port on which the proxy will listen.
      */
     public ProxyServer() {
         
@@ -95,15 +95,19 @@ public class ProxyServer implements CommandLineRunner {
             // Wait for client connection...
             ServerSocket socket = new ServerSocket(port);
             
+            Socket server = new Socket(mongo_ip, mongo_port);
+            
             logger.info("start port at {}", port);
 
             while (true) {
                 Socket client = socket.accept();
                 logger.info("Connected from {}", client.getRemoteSocketAddress());
                 
-                logger.info("Connected from {}", client.getInetAddress());
+//                logger.info("Connected from {}", client.getInetAddress());
                 
-                EXECUTOR_SERVICE.execute( new ConnectionHandler(client, mongo_ip, mongo_port, listeners));
+                EXECUTOR_SERVICE.execute( new ConnectionHandlerService(client, server));
+                
+//                EXECUTOR_SERVICE.execute( new ConnectionHandler(client, mongo_ip, mongo_port, listeners));
             }
 
         } catch (IOException ex) {
