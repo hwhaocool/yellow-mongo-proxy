@@ -1,5 +1,6 @@
 package yellow.mongo.proxy;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -7,6 +8,7 @@ import java.net.Socket;
 import java.util.HashMap;
 import java.util.LinkedList;
 
+import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,9 +53,9 @@ class ConnectionHandler implements Runnable {
             InputStream srv_in = srv_socket.getInputStream();
 
             while (true) {
-                
-                
+            	
                 byte[] msg = readMessage(client_in);
+                logger.info("msg length is {}", msg.length);
                 
                 MsgHeader header = new MsgHeader(msg);
                 
@@ -68,19 +70,22 @@ https://docs.mongodb.com/manual/reference/mongodb-wire-protocol/#request-opcodes
                  *
                  */
 
-                if (opcode == OpCode.OP_QUERY.getValue()) {
+//                if (opcode == OpCode.OP_QUERY.getValue()) {
 //                    OpQuery opQuery = new OpQuery(msg);
 //                    if (! opQuery.isHeartBeat()) {
 //                        logger.info("query is {}", opQuery);
 //                    }
                     
-                    processQuery(msg);
-                }
+//                    processQuery(msg);
+//                }
 
                 srv_out.write(msg);
                 
+//                byte[] response = IOUtils.toByteArray(srv_in);
+                
                 byte[] response = readMessage(srv_in);
-//                logger.info("response length is {}", response.length);
+                
+                logger.info("response length is {}", response.length);
                 
                 client_out.write(response);
             }
@@ -175,6 +180,10 @@ https://docs.mongodb.com/manual/reference/mongodb-wire-protocol/#request-opcodes
         final int msg_length = lentgh_1
                 + lentgh_2 * 256 + lentgh_3 * 256 * 256
                 + lentgh_4 * 256 * 256 * 256;
+        
+        logger.info("1 {} 2 {} 3 {} 4 {}", lentgh_1, lentgh_2, lentgh_3, lentgh_4);
+        System.out.println(msg_length);
+        
         // 2. content of message
         byte[] msg = new byte[msg_length];
         int offset = 4;
