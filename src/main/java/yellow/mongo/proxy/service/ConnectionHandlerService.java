@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import yellow.mongo.proxy.Listener;
+import yellow.mongo.proxy.utils.Helper;
 
 public class ConnectionHandlerService implements Runnable {
     
@@ -61,7 +62,9 @@ public class ConnectionHandlerService implements Runnable {
                 //back(10) 5 0 0 1 0 0 0 0 0 0
                 //猜测：请把请求代理到 119.23.235.71 的 27017(16进制69 89 ) 处
                 
-                //http://www.haproxy.org/download/1.8/doc/proxy-protocol.txt
+                //这里其实是 Sock5 协议
+                //https://www.ietf.org/rfc/rfc1928.txt
+                //https://blog.csdn.net/cszhouwei/article/details/74362427
                 
 //              byte[] msg = readMessage(client_in);
                 
@@ -74,15 +77,21 @@ public class ConnectionHandlerService implements Runnable {
                 
                 if (0 == msg.length) {
                     //输入都没有，把socket关了
+                    //注意：可能是心跳
                     LOGGER.info("msg len is zero");
                     
                     client_out.write(msg);
                     continue;
-                } else if (4 == msg.length) {
+                } else if (4 >= msg.length) {
+                    //长度小于4个字节
+                    //根据 Sock5 协议，此处返回 05 00，因为我们只支持 无鉴权的模式
                     
                     client_out.write(new  byte[] {5, 0});
                     continue;
                 } else if (10 == msg.length) {
+                    
+                    
+                    
                     client_out.write(new  byte[] {5, 0, 0, 1, 0, 0, 0, 0, 0, 0});
                     continue;
                 }
@@ -212,6 +221,19 @@ public class ConnectionHandlerService implements Runnable {
             }
         }
         return count;
+    }
+    
+    private String getIp(byte[] msg) {
+        int ip_1 = Integer.valueOf("" + (msg[4]&0xff) ,16);
+        int ip_2 = Integer.valueOf("" + (msg[5]&0xff) ,16);
+        int ip_3 = Integer.valueOf("" + (msg[6]&0xff) ,16);
+        int ip_4 = Integer.valueOf("" + (msg[7]&0xff) ,16);
+        
+        return String.format("%d.%d.%d.%d", ip_1, ip_2, ip_3, ip_4);
+    }
+    
+    private int getPort(byte[] msg) {
+        return (msg[8] & 0xff) << 8 | (msg[9] & 0xff); 
     }
 
 }
