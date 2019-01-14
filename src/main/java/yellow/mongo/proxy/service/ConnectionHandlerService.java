@@ -15,25 +15,25 @@ import org.slf4j.LoggerFactory;
 import yellow.mongo.proxy.Listener;
 
 public class ConnectionHandlerService implements Runnable {
-	
-	private final Logger LOGGER = LoggerFactory.getLogger(ConnectionHandlerService.class);
-	
-	private static final int DEFAULT_BUFFER_SIZE = 8;
-	
-	private final Socket client;
-//	private final Socket server;
-	
-	public ConnectionHandlerService (
+    
+    private final Logger LOGGER = LoggerFactory.getLogger(ConnectionHandlerService.class);
+    
+    private static final int DEFAULT_BUFFER_SIZE = 8;
+    
+    private final Socket client;
+//  private final Socket server;
+    
+    public ConnectionHandlerService (
             final Socket client, final Socket server) {
         this.client = client;
 //        this.server = server;
     }
 
-	@Override
-	public void run() {
-		LOGGER.info("ConnectionHandlerService start run");
-		
-		try {
+    @Override
+    public void run() {
+        LOGGER.info("ConnectionHandlerService start run");
+        
+        try {
             InputStream client_in = client.getInputStream();
             OutputStream client_out = client.getOutputStream();
 
@@ -43,49 +43,49 @@ public class ConnectionHandlerService implements Runnable {
             InputStream srv_in = server.getInputStream();
 
             while (true) {
-            	
-//            	ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(buf)
-            	
-            	if (client.isClosed()) {
-            		LOGGER.info("client is close");
-            	}
-            	
-            	LOGGER.info("start copy");
-            	
-            	//对于 3T 来说
-            	// 发送一个4字节的  5 2 0 2
-            	//需要返回2字节 5 0
-            	//猜测：开启 proxy 模式
-            	
-            	//send(10) 5 1 0 1 77(119) 17(23) eb(235) 47(71) 69(105) 89(137)
-            	//back(10) 5 0 0 1 0 0 0 0 0 0
-            	//猜测：请把请求代理到 119.23.235.71 的 27017(16进制69 89 ) 处
-            	
-            	//http://www.haproxy.org/download/1.8/doc/proxy-protocol.txt
-            	
-//            	byte[] msg = readMessage(client_in);
-            	
+                
+//              ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(buf)
+                
+                if (client.isClosed()) {
+                    LOGGER.info("client is close");
+                }
+                
+                LOGGER.info("start copy");
+                
+                //对于 3T 来说
+                // 发送一个4字节的  5 2 0 2
+                //需要返回2字节 5 0
+                //猜测：开启 proxy 模式
+                
+                //send(10) 5 1 0 1 77(119) 17(23) eb(235) 47(71) 69(105) 89(137)
+                //back(10) 5 0 0 1 0 0 0 0 0 0
+                //猜测：请把请求代理到 119.23.235.71 的 27017(16进制69 89 ) 处
+                
+                //http://www.haproxy.org/download/1.8/doc/proxy-protocol.txt
+                
+//              byte[] msg = readMessage(client_in);
+                
                 byte[] msg = toByteArray(client_in);
                 
                 if (0 != msg.length) {
-                	LOGGER.info("msg length is {}", msg.length);
-                	LOGGER.info("msg is {}", msg);
+                    LOGGER.info("msg length is {}", msg.length);
+                    LOGGER.info("msg is {}", msg);
                 }
                 
                 if (0 == msg.length) {
-					//输入都没有，把socket关了
-                	LOGGER.info("msg len is zero");
-                	
-                	client_out.write(msg);
-                	continue;
-				} else if (4 == msg.length) {
-					
-					client_out.write(new  byte[] {5, 0});
-					continue;
-				} else if (10 == msg.length) {
-					client_out.write(new  byte[] {5, 0, 0, 1, 0, 0, 0, 0, 0, 0});
-					continue;
-				}
+                    //输入都没有，把socket关了
+                    LOGGER.info("msg len is zero");
+                    
+                    client_out.write(msg);
+                    continue;
+                } else if (4 == msg.length) {
+                    
+                    client_out.write(new  byte[] {5, 0});
+                    continue;
+                } else if (10 == msg.length) {
+                    client_out.write(new  byte[] {5, 0, 0, 1, 0, 0, 0, 0, 0, 0});
+                    continue;
+                }
                 
                 //redirect byte to server
                 srv_out.write(msg);
@@ -93,26 +93,26 @@ public class ConnectionHandlerService implements Runnable {
                 //read the data from server return
                 
 //                if (msg.length <= 12) {
-//                	client_out.write(msg);
-//				} else {
-					LOGGER.info("start copy2");
-	                byte[] response = toByteArray(srv_in);
-	                
-//	                byte[] response = readMessage(srv_in);
-	                
-	                LOGGER.info("response length is {}", response.length);
-	                LOGGER.info("response is {}", response);
-	                
-	                client_out.write(response);
-//				}
+//                  client_out.write(msg);
+//              } else {
+                    LOGGER.info("start copy2");
+                    byte[] response = toByteArray(srv_in);
+                    
+//                  byte[] response = readMessage(srv_in);
+                    
+                    LOGGER.info("response length is {}", response.length);
+                    LOGGER.info("response is {}", response);
+                    
+                    client_out.write(response);
+//              }
                 
             }
         } catch (Exception ex) {
             LOGGER.error("error, ", ex);
         }
-	}
-	
-	public byte[] readMessage(
+    }
+    
+    public byte[] readMessage(
             final InputStream stream) throws IOException, Exception {
         if (stream == null) {
             throw new Exception("Stream is null!");
@@ -152,39 +152,39 @@ public class ConnectionHandlerService implements Runnable {
         msg[3] = (byte) lentgh_4;
         return msg;
     }
-	
-	public byte[] toByteArray(final InputStream input) throws IOException {
-		
+    
+    public byte[] toByteArray(final InputStream input) throws IOException {
+        
         try (final ByteArrayOutputStream output = new ByteArrayOutputStream()) {
-        	
+            
             copy(input, output);
             
             return output.toByteArray();
         }
     }
-	
-	public int copy(final InputStream input, final OutputStream output) throws IOException {
+    
+    public int copy(final InputStream input, final OutputStream output) throws IOException {
         final long count = copyLarge(input, output);
         if (count > Integer.MAX_VALUE) {
             return -1;
         }
         return (int) count;
     }
-	
-	public long copyLarge(final InputStream input, final OutputStream output)
+    
+    public long copyLarge(final InputStream input, final OutputStream output)
             throws IOException {
         return copy(input, output, 4096);
     }
-	
-	public long copy(final InputStream input, final OutputStream output, final int bufferSize)
+    
+    public long copy(final InputStream input, final OutputStream output, final int bufferSize)
             throws IOException {
-		LOGGER.info("tag 2-1");
+        LOGGER.info("tag 2-1");
         return copyLarge(input, output, new byte[bufferSize]);
     }
-	
-	public long copyLarge(final InputStream input, final OutputStream output, final byte[] buffer)
+    
+    public long copyLarge(final InputStream input, final OutputStream output, final byte[] buffer)
             throws IOException {
-		LOGGER.info("tag 2-2");
+        LOGGER.info("tag 2-2");
         long count = 1;
         int n;
         
@@ -192,24 +192,24 @@ public class ConnectionHandlerService implements Runnable {
         LOGGER.info("fisrt is {}", first);
         
         if (-1 == first) {
-			//empty stream
-        	return 0;
-		}
+            //empty stream
+            return 0;
+        }
         
         output.write( first);
         
         while (-1 != (n = input.read(buffer))) {
-        	LOGGER.info("tag 2-3, n is {}", n);
-        	
+            LOGGER.info("tag 2-3, n is {}", n);
+            
             output.write(buffer, 0, n);
             LOGGER.info("tag 2-4");
             
             count += n;
             
             if (n != DEFAULT_BUFFER_SIZE) {
-				//这次没有读满，说明流已经结束了，可以退出了，没有必要等着-1
-            	break;
-			}
+                //这次没有读满，说明流已经结束了，可以退出了，没有必要等着-1
+                break;
+            }
         }
         return count;
     }
