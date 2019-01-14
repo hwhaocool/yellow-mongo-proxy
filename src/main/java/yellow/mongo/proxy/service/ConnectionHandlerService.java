@@ -19,8 +19,6 @@ public class ConnectionHandlerService implements Runnable {
     
     private final Logger LOGGER = LoggerFactory.getLogger(ConnectionHandlerService.class);
     
-    private static final int DEFAULT_BUFFER_SIZE = 8;
-    
     private final Socket client;
 //  private final Socket server;
     
@@ -162,66 +160,6 @@ public class ConnectionHandlerService implements Runnable {
         return msg;
     }
     
-    public byte[] toByteArray(final InputStream input) throws IOException {
-        
-        try (final ByteArrayOutputStream output = new ByteArrayOutputStream()) {
-            
-            copy(input, output);
-            
-            return output.toByteArray();
-        }
-    }
-    
-    public int copy(final InputStream input, final OutputStream output) throws IOException {
-        final long count = copyLarge(input, output);
-        if (count > Integer.MAX_VALUE) {
-            return -1;
-        }
-        return (int) count;
-    }
-    
-    public long copyLarge(final InputStream input, final OutputStream output)
-            throws IOException {
-        return copy(input, output, 4096);
-    }
-    
-    public long copy(final InputStream input, final OutputStream output, final int bufferSize)
-            throws IOException {
-        LOGGER.info("tag 2-1");
-        return copyLarge(input, output, new byte[bufferSize]);
-    }
-    
-    public long copyLarge(final InputStream input, final OutputStream output, final byte[] buffer)
-            throws IOException {
-        LOGGER.info("tag 2-2");
-        long count = 1;
-        int n;
-        
-        int first = input.read();
-        LOGGER.info("fisrt is {}", first);
-        
-        if (-1 == first) {
-            //empty stream
-            return 0;
-        }
-        
-        output.write( first);
-        
-        while (-1 != (n = input.read(buffer))) {
-            LOGGER.info("tag 2-3, n is {}", n);
-            
-            output.write(buffer, 0, n);
-            LOGGER.info("tag 2-4");
-            
-            count += n;
-            
-            if (n != DEFAULT_BUFFER_SIZE) {
-                //这次没有读满，说明流已经结束了，可以退出了，没有必要等着-1
-                break;
-            }
-        }
-        return count;
-    }
     
     private String getIp(byte[] msg) {
         int ip_1 = Integer.valueOf("" + (msg[4]&0xff) ,16);
