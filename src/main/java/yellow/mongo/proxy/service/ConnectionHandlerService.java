@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 
 import yellow.mongo.proxy.Listener;
 import yellow.mongo.proxy.utils.Helper;
+import yellow.mongo.proxy.utils.MyIOUtils;
 
 public class ConnectionHandlerService implements Runnable {
     
@@ -66,7 +67,7 @@ public class ConnectionHandlerService implements Runnable {
                 
 //              byte[] msg = readMessage(client_in);
                 
-                byte[] msg = toByteArray(client_in);
+                byte[] msg = MyIOUtils.toByteArray(client_in);
                 
                 if (0 != msg.length) {
                     LOGGER.info("msg length is {}", msg.length);
@@ -103,7 +104,7 @@ public class ConnectionHandlerService implements Runnable {
 //                  client_out.write(msg);
 //              } else {
                     LOGGER.info("start copy2");
-                    byte[] response = toByteArray(srv_in);
+                    byte[] response = MyIOUtils.toByteArray(srv_in);
                     
 //                  byte[] response = readMessage(srv_in);
                     

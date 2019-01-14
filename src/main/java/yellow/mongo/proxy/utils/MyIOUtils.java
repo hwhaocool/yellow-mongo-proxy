@@ -18,14 +18,14 @@ import org.slf4j.LoggerFactory;
  */
 public class MyIOUtils {
     
-    private final Logger LOGGER = LoggerFactory.getLogger(MyIOUtils.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(MyIOUtils.class);
     
     /**
      * <br>每次读取的字节数
      */
     private static final int DEFAULT_BUFFER_SIZE = 8;
 
-    public byte[] toByteArray(final InputStream input) throws IOException {
+    public static byte[] toByteArray(final InputStream input) throws IOException {
         
         try (final ByteArrayOutputStream output = new ByteArrayOutputStream()) {
             
@@ -35,7 +35,7 @@ public class MyIOUtils {
         }
     }
     
-    public int copy(final InputStream input, final OutputStream output) throws IOException {
+    public static int copy(final InputStream input, final OutputStream output) throws IOException {
         final long count = copyLarge(input, output);
         if (count > Integer.MAX_VALUE) {
             return -1;
@@ -43,18 +43,18 @@ public class MyIOUtils {
         return (int) count;
     }
     
-    public long copyLarge(final InputStream input, final OutputStream output)
+    public static long copyLarge(final InputStream input, final OutputStream output)
             throws IOException {
         return copy(input, output, 4096);
     }
     
-    public long copy(final InputStream input, final OutputStream output, final int bufferSize)
+    public static long copy(final InputStream input, final OutputStream output, final int bufferSize)
             throws IOException {
         LOGGER.info("tag 2-1");
         return copyLarge(input, output, new byte[bufferSize]);
     }
     
-    public long copyLarge(final InputStream input, final OutputStream output, final byte[] buffer)
+    public static  long copyLarge(final InputStream input, final OutputStream output, final byte[] buffer)
             throws IOException {
         LOGGER.info("tag 2-2");
         long count = 1;
