@@ -83,13 +83,18 @@ public class ConnectionHandlerService implements Runnable {
                     continue;
                 } else if (4 >= msg.length) {
                     //长度小于4个字节
+                    //此处是 客户端和代理服务器 认证协商过程
                     //根据 Sock5 协议，此处返回 05 00，因为我们只支持 无鉴权的模式
                     
                     client_out.write(new  byte[] {5, 0});
                     continue;
                 } else if (10 == msg.length) {
+                    //如果是 10个字节，代表此处是 客户端开始发送具体的请求
+                    //拿到ip 和端口
+                    String ip = getIp(msg);
+                    int port = getPort(msg);
                     
-                    
+                    LOGGER.info("remote ip is {}, port is {}", ip, port);
                     
                     client_out.write(new  byte[] {5, 0, 0, 1, 0, 0, 0, 0, 0, 0});
                     continue;
@@ -162,6 +167,13 @@ public class ConnectionHandlerService implements Runnable {
     }
     
     
+    /**
+     * <br>得到 IP 地址
+     * @param msg
+     * @return
+     * @author YellowTail
+     * @since 2019-01-15
+     */
     private String getIp(byte[] msg) {
         int ip_1 = Integer.valueOf("" + (msg[4]&0xff) ,16);
         int ip_2 = Integer.valueOf("" + (msg[5]&0xff) ,16);
@@ -171,6 +183,13 @@ public class ConnectionHandlerService implements Runnable {
         return String.format("%d.%d.%d.%d", ip_1, ip_2, ip_3, ip_4);
     }
     
+    /**
+     * <br>得到 端口号
+     * @param msg
+     * @return
+     * @author YellowTail
+     * @since 2019-01-15
+     */
     private int getPort(byte[] msg) {
         return (msg[8] & 0xff) << 8 | (msg[9] & 0xff); 
     }

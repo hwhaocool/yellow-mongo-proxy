@@ -1,137 +1,144 @@
-/*
- * The MIT License
- *
- * Copyright 2018 Thibault Debatty.
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT,TORT OR OTHERWISE, ARISIFNG FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- */
 package yellow.mongo.proxy;
 
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.ApplicationArguments;
+import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 import yellow.mongo.proxy.config.Config;
+import yellow.mongo.proxy.constant.ProxyConstant;
+import yellow.mongo.proxy.model.Address;
+import yellow.mongo.proxy.model.ProxyConfig;
 import yellow.mongo.proxy.service.ConnectionHandlerService;
+import yellow.mongo.proxy.service.SocketPoolService;
 
-/**
- *
- * @author Thibault Debatty
- */
-@Service
-public class ProxyServer implements CommandLineRunner {
 
-    private final Logger logger = LoggerFactory.getLogger(ProxyServer.class);
-    
-    private static final ExecutorService EXECUTOR_SERVICE = (ExecutorService) Executors.newFixedThreadPool(10);
+//@Service
+public class ProxyServer implements ApplicationRunner {
+    //CommandLineRunner
+
+    private final Logger LOGGER = LoggerFactory.getLogger(ProxyServer.class);
     
     @Autowired
-    private Config config;
+//    private Config config;
+    
+    private ProxyConfig config;
+    
+    private SocketPoolService socketPoolService;
 
     private String mongo_ip = "119.23.235.71";
     private int mongo_port = 27017;
 
-    private final HashMap<String, LinkedList<Listener>> listeners  = new HashMap<>();
 
-    /**
-     * Build a mongo proxy, specifying the address of the real mongo server.
-     * @param port port on which the proxy will listen.
-     * @param mongo_ip IP of the MONGODB database serve.
-     * @param mongo_port port of the MONGODB database serve.
-     */
-    public ProxyServer( final int port, final String mongo_ip, final int mongo_port) {
-        this.mongo_ip = mongo_ip;
-        this.mongo_port = mongo_port;
-
-    }
-
-    /**
-     * Build a mongo proxy using default mongo server (localhost:27017).
-     *
-     */
     public ProxyServer() {
         
     }
 
-    /**
-     * Run forever.
-     */
-    public final void run(String... args) {
-
-        try {
-            
-            int port = config.getSocketPort();
-            
-            String mongoUri = config.getMongoClientUri();
-            
-//            int 
-
-            // Wait for client connection...
-            ServerSocket socket = new ServerSocket(port);
-            
-            Socket server = new Socket(mongo_ip, mongo_port);
-            
-            logger.info("start port at {}", port);
-
-            while (true) {
-                Socket client = socket.accept();
-                logger.info("Connected from {}", client.getRemoteSocketAddress());
-                
-//                logger.info("Connected from {}", client.getInetAddress());
-                
-                EXECUTOR_SERVICE.execute( new ConnectionHandlerService(client, server));
-                
-//                EXECUTOR_SERVICE.execute( new ConnectionHandler(client, mongo_ip, mongo_port, listeners));
-            }
-
-        } catch (IOException ex) {
-            logger.error(ex.getMessage());
+    @Override
+    public void run(ApplicationArguments args) throws Exception {
+        
+        handleArgs(args);
+        
+        //远程链接
+        List<Address> addressList = config.getAddressList();
+        if (CollectionUtils.isEmpty(addressList)) {
+            throw new IllegalArgumentException("addressList is empty");
+        }
+        
+        socketPoolService = new SocketPoolService(addressList, config.getDstConNum(), config.getThreadsNum());
+        socketPoolService.connection();
+        
+        //开启监听端口
+        List<Integer> proxyPortList = config.getProxyPortList();
+        
+        for (Integer port : proxyPortList) {
+            new Thread( new ProxyService(port) ).run();
         }
     }
+    
+    private void handleArgs(ApplicationArguments args) {
+        LOGGER.info("ProxyServer started with command-line arguments  {}", Arrays.toString(args.getSourceArgs()));
+        LOGGER.info("OptionNames {}", args.getOptionNames());
+        
+        this.config = new ProxyConfig();
 
-    /**
-     *
-     * @param db name of the database
-     * @param collection name of the collection
-     * @param listener listener used for notification
-     */
-    public final void addListener(final String db, final String collection,
-            final Listener listener) {
+        for (String name : args.getOptionNames()){
+            List<String> optionValues = args.getOptionValues(name);
+            
+            if (CollectionUtils.isEmpty(optionValues)) {
+                continue;
+            }
+            
+            LOGGER.info("arg- {} = {}",   name , optionValues);
+            
+            switch (name) {
+            case ProxyConstant.ArgName.DST_ADDRESS:
+                config.setAddressList(optionValues);
+                break;
+            case ProxyConstant.ArgName.DST_CON_NUM:
+                config.setDstConNum(Integer.parseInt(optionValues.get(0)));
+                break;
+            case ProxyConstant.ArgName.THREADS_NUM:
+                config.setThreadsNum(Integer.parseInt(optionValues.get(0)));
+                break;
+            case ProxyConstant.ArgName.PROXY_PORT:
+                config.setProxyPortList(optionValues);
+                break;
 
-        String collection_request = db + ".$cmd" + collection;
+            default:
+                break;
+            }
+        }
+        
+        LOGGER.info("config is {}", config);
+    }
+    
+    public class ProxyService implements Runnable {
+        
+        private int listenPort;
+        
+        public ProxyService(int port) {
+            this.listenPort = port;
+        }
 
-        LinkedList<Listener> collection_listeners
-                = listeners.getOrDefault(
-                        collection_request, new LinkedList<>());
+        @Override
+        public void run() {
+            
+            
+            try {
 
-        collection_listeners.add(listener);
-        listeners.put(collection_request, collection_listeners);
+                // Wait for client connection...
+                ServerSocket socket = new ServerSocket(listenPort);
+                
+                LOGGER.info("start listen port at {}", listenPort);
+
+                while (true) {
+                    Socket client = socket.accept();
+                    LOGGER.info("Connected from {}", client.getRemoteSocketAddress());
+                    LOGGER.info("Connected from {}", client.getInetAddress());
+                    
+                    socketPoolService.proxy(client);
+                }
+
+            } catch (IOException ex) {
+                LOGGER.error(ex.getMessage());
+            }
+        }
+        
     }
 
 }
