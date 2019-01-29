@@ -67,7 +67,7 @@ public class ProxyConfig {
         this.addressList = new ArrayList<>();
         
         for (String string : strList) {
-            int indexOf = string.indexOf(',');
+            int indexOf = string.indexOf(':');
             
             if (-1 == indexOf) {
                 throw new IllegalArgumentException("address is illegal, ',' not found");

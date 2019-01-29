@@ -10,6 +10,11 @@ public class MySocket {
     private boolean isUsed;
     
     private Socket socket;
+    
+    public MySocket(Socket socket) {
+        isUsed = false;
+        this.socket = socket;
+    }
 
     public boolean isUsed() {
         return isUsed;

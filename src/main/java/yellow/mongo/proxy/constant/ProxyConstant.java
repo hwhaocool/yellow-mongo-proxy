@@ -5,7 +5,7 @@ public class ProxyConstant {
     /**
      * <br>默认开启 100 个线程
      */
-    public static final int DEFAULT_THREAD_NUM = 100;
+    public static final int DEFAULT_THREAD_NUM = 3;
     
     /**
      * <br>默认 建立 50个 连接
@@ -15,7 +15,7 @@ public class ProxyConstant {
     /**
      * <br>默认的 代理端口
      */
-    public static final int DEFAULT_PROXY_PORT = 10001;
+    public static final int DEFAULT_PROXY_PORT = 10002;
     
     /**
      * 命令行 参数 

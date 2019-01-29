@@ -50,18 +50,18 @@ public class MyIOUtils {
     
     public static long copy(final InputStream input, final OutputStream output, final int bufferSize)
             throws IOException {
-        LOGGER.info("tag 2-1");
+//        LOGGER.info("tag 2-1");
         return copyLarge(input, output, new byte[bufferSize]);
     }
     
     public static  long copyLarge(final InputStream input, final OutputStream output, final byte[] buffer)
             throws IOException {
-        LOGGER.info("tag 2-2");
+//        LOGGER.info("tag 2-2");
         long count = 1;
         int n;
         
         int first = input.read();
-        LOGGER.info("fisrt is {}", first);
+//        LOGGER.info("fisrt is {}", first);
         
         if (-1 == first) {
             //empty stream
@@ -71,10 +71,10 @@ public class MyIOUtils {
         output.write( first);
         
         while (-1 != (n = input.read(buffer))) {
-            LOGGER.info("tag 2-3, n is {}", n);
+//            LOGGER.info("tag 2-3, n is {}", n);
             
             output.write(buffer, 0, n);
-            LOGGER.info("tag 2-4");
+//            LOGGER.info("tag 2-4");
             
             count += n;
             

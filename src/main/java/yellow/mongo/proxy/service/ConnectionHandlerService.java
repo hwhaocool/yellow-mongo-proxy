@@ -13,6 +13,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import yellow.mongo.proxy.Listener;
+import yellow.mongo.proxy.model.MsgHeader;
+import yellow.mongo.proxy.model.MySocket;
 import yellow.mongo.proxy.utils.Helper;
 import yellow.mongo.proxy.utils.MyIOUtils;
 
@@ -21,24 +23,27 @@ public class ConnectionHandlerService implements Runnable {
     private final Logger LOGGER = LoggerFactory.getLogger(ConnectionHandlerService.class);
     
     private final Socket client;
-//  private final Socket server;
+  private final MySocket mySocket;
     
     public ConnectionHandlerService (
-            final Socket client, final Socket server) {
+            final Socket client, final MySocket mySocket) {
         this.client = client;
-//        this.server = server;
+        this.mySocket = mySocket;
     }
 
     @Override
     public void run() {
-        LOGGER.info("ConnectionHandlerService start run");
+        LOGGER.info("ConnectionHandlerService start run, temp port is {}", client.getPort());
+        
+        Socket server = mySocket.getSocket();
+        mySocket.setUsed(true);
         
         try {
             InputStream client_in = client.getInputStream();
             OutputStream client_out = client.getOutputStream();
 
             // of server
-            Socket server = new Socket("119.23.235.71", 27017);
+//            Socket server = new Socket("119.23.235.71", 27017);
             OutputStream srv_out = server.getOutputStream();
             InputStream srv_in = server.getInputStream();
 
@@ -50,7 +55,7 @@ public class ConnectionHandlerService implements Runnable {
                     LOGGER.info("client is close");
                 }
                 
-                LOGGER.info("start copy");
+//                LOGGER.info("start copy");
                 
                 //对于 3T 来说
                 // 发送一个4字节的  5 2 0 2
@@ -70,14 +75,15 @@ public class ConnectionHandlerService implements Runnable {
                 byte[] msg = MyIOUtils.toByteArray(client_in);
                 
                 if (0 != msg.length) {
-                    LOGGER.info("msg length is {}", msg.length);
-                    LOGGER.info("msg is {}", msg);
+//                    LOGGER.info("msg length is {}", msg.length);
+//                    LOGGER.info("msg is {}", msg);
                 }
                 
                 if (0 == msg.length) {
                     //输入都没有，把socket关了
                     //注意：可能是心跳
-                    LOGGER.info("msg len is zero");
+//                    LOGGER.info("msg len is zero");
+//                    LOGGER.info("heartbeat...");
                     
                     client_out.write(msg);
                     continue;
@@ -85,6 +91,8 @@ public class ConnectionHandlerService implements Runnable {
                     //长度小于4个字节
                     //此处是 客户端和代理服务器 认证协商过程
                     //根据 Sock5 协议，此处返回 05 00，因为我们只支持 无鉴权的模式
+                    
+                    LOGGER.info("socks 5 first");
                     
                     client_out.write(new  byte[] {5, 0});
                     continue;
@@ -104,24 +112,25 @@ public class ConnectionHandlerService implements Runnable {
                 srv_out.write(msg);
                 
                 //read the data from server return
+                byte[] response = MyIOUtils.toByteArray(srv_in);
                 
-//                if (msg.length <= 12) {
-//                  client_out.write(msg);
-//              } else {
-                    LOGGER.info("start copy2");
-                    byte[] response = MyIOUtils.toByteArray(srv_in);
+                MsgHeader header = new MsgHeader(msg);
+                MsgHeader header2 = new MsgHeader(response);
+                LOGGER.info("request is {}, reponse is {}", header, header2);
                     
-//                  byte[] response = readMessage(srv_in);
-                    
-                    LOGGER.info("response length is {}", response.length);
-                    LOGGER.info("response is {}", response);
-                    
-                    client_out.write(response);
-//              }
+                client_out.write(response);
                 
             }
         } catch (Exception ex) {
             LOGGER.error("error, ", ex);
+            
+            try {
+                client.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            
+            mySocket.setUsed(false);
         }
     }
     

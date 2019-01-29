@@ -4,7 +4,7 @@
 
 	<appender name="console" class="ch.qos.logback.core.ConsoleAppender">
 		<encoder>
-			<pattern>[%d{yyyy-MM-dd HH:mm:ss}] %p %c{50}:%L - %m%n</pattern>
+			<pattern>[%d{yyyy-MM-dd HH:mm:ss}] %p [ %thread] %c{50}:%L - %m%n</pattern>
 			<charset class="java.nio.charset.Charset">UTF-8</charset>
 		</encoder>
 	</appender>

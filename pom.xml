@@ -55,11 +55,11 @@
             <scope>test</scope>
         </dependency>
         
-        <dependency>
+        <!-- <dependency>
             <groupId>org.mongodb</groupId>
             <artifactId>mongodb-driver</artifactId>
             <version>3.5.0</version>
-        </dependency>
+        </dependency> -->
         
         <dependency>
             <groupId>org.mongodb</groupId>

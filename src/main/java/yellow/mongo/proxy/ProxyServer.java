@@ -33,15 +33,15 @@ public class ProxyServer implements ApplicationRunner {
 
     private final Logger LOGGER = LoggerFactory.getLogger(ProxyServer.class);
     
-    @Autowired
+//    @Autowired
 //    private Config config;
     
     private ProxyConfig config;
     
     private SocketPoolService socketPoolService;
 
-    private String mongo_ip = "119.23.235.71";
-    private int mongo_port = 27017;
+//    private String mongo_ip = "119.23.235.71";
+//    private int mongo_port = 27017;
 
 
     public ProxyServer() {
