@@ -1,19 +1,22 @@
 package yellow.mongo.proxy.service;
 
 import java.io.IOException;
-import java.net.Socket;
+import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
+import java.nio.channels.AsynchronousChannelGroup;
+import java.nio.channels.AsynchronousSocketChannel;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.Future;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import yellow.mongo.proxy.model.Address;
-import yellow.mongo.proxy.model.MySocket;
+import yellow.mongo.proxy.model.MyChannel;
 
 public class SocketPoolService {
     
@@ -25,7 +28,12 @@ public class SocketPoolService {
     
     private static int threadNum;
     
-    private static List<MySocket> socketList;
+    private static List<MyChannel> channelList;
+    
+    /**
+     * <br>异步通道组
+     */
+    private static AsynchronousChannelGroup group;
     
     /**
      * <br>定长线程池
@@ -57,14 +65,26 @@ public class SocketPoolService {
         
         //线程池
         EXECUTOR_SERVICE = (ExecutorService) Executors.newFixedThreadPool(threadNum);
-    }
-
-    public static List<MySocket> getSocketList() {
-        return socketList;
+        
+        try {
+            group = AsynchronousChannelGroup.withThreadPool(EXECUTOR_SERVICE);
+        } catch (IOException e) {
+            LOGGER.error("init group occur errors, ", e);
+        }
     }
 
     public static ExecutorService getExecutorService() {
         return EXECUTOR_SERVICE;
+    }
+    
+    /**
+     * <br>得到 异步通道组
+     * @return
+     * @author YellowTail
+     * @since 2019-02-01
+     */
+    public static AsynchronousChannelGroup getChannelGroup() {
+        return group;
     }
 
     /**
@@ -77,14 +97,14 @@ public class SocketPoolService {
     public static void connection() throws UnknownHostException, IOException {
         //建立连接
         
-        socketList = new ArrayList<>();
+        channelList = new ArrayList<>();
         
         int addrSize = addressList.size();
         int avgConNum = totalConNum / addrSize;
         
         int firstConNum = totalConNum - (addrSize * avgConNum) + avgConNum;
         
-        initSocket(addressList.get(0), firstConNum);
+        initChannel(addressList.get(0), firstConNum);
         
         if (1 == addrSize) {
             return;
@@ -92,28 +112,24 @@ public class SocketPoolService {
         
         for (int i = 1; i < addrSize; i++) {
             Address address = addressList.get(i);
-            initSocket(address, avgConNum);
+            initChannel(address, avgConNum);
         }
         
         LOGGER.info("connections init completed");
         
-        
-//        EXECUTOR_SERVICE.execute(new Allocation());
-        
-        LOGGER.info("go xxxxxxxxxxxx");
     }
     
     /**
-     * <br>取出一个空闲的 socket
+     * <br>取出一个空闲的 通道
      * @return
      * @author YellowTail
      * @since 2019-01-26
      */
-    private static Socket getServerSocket() {
+    public static MyChannel getAFreeChannel() {
         
-        MySocket orElse = socketList.stream().filter(MySocket::isFree).findAny().orElse(null);
-        
-        return null;
+        return channelList.stream()
+                .filter(MyChannel::isFree)
+                .findAny().orElse(null);
     }
     
     /**
@@ -125,17 +141,37 @@ public class SocketPoolService {
      * @author YellowTail
      * @since 2019-01-26
      */
-    private static void initSocket(Address address, int num) throws UnknownHostException, IOException {
+    private static void initChannel(Address address, int num) throws UnknownHostException, IOException {
         LOGGER.info("start init {} connections to {}", num, address);
         
         for (int i = 0; i < num; i++) {
-            Socket server = new Socket(address.getIp(), address.getPort());
-            
-            socketList.add(new MySocket(server));
+            channelList.add(initMyChannel(address.getIp(), address.getPort()));
         }
     }
     
-    private void heartBeat() {
+    private static MyChannel initMyChannel(String ip, int port) throws IOException {
+        
+        try {
+            AsynchronousSocketChannel asc = AsynchronousSocketChannel.open(group);
+            
+            Future<Void> connect = asc.connect(new InetSocketAddress(ip, port));
+            
+            //阻塞，直到连接成功
+            connect.get();
+            
+            MyChannel myChannel = new MyChannel();
+            myChannel.setChannel(asc);
+            myChannel.setUsed(false);
+            
+            return myChannel;
+        } catch (InterruptedException | ExecutionException e) {
+            LOGGER.error("connecte to server occur errors, ", e);
+        }
+        
+        return null;
+    }
+    
+    public void heartBeat() {
         //TODO: 心跳
     }
     
