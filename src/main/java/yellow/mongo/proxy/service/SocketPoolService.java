@@ -7,6 +7,7 @@ import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -130,6 +131,20 @@ public class SocketPoolService {
         return channelList.stream()
                 .filter(MyChannel::isFree)
                 .findAny().orElse(null);
+    }
+    
+    /**
+     * <br>随机取一个通道
+     * @return
+     * @author YellowTail
+     * @since 2019-02-01
+     */
+    public static MyChannel getARandomChannel() {
+        
+        Random random = new Random();
+        int index = Math.abs(random.nextInt()) % 10;
+        
+        return channelList.get(index);
     }
     
     /**

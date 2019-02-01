@@ -8,7 +8,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import yellow.mongo.proxy.model.MsgHeader;
+import yellow.mongo.proxy.model.MyChannel;
 import yellow.mongo.proxy.model.OpCode;
+import yellow.mongo.proxy.service.SocketPoolService;
 import yellow.mongo.proxy.utils.ByteBufferUtils;
 
 public class ClientReadHandler implements CompletionHandler<Integer, ByteBuffer> {
@@ -63,6 +65,10 @@ public class ClientReadHandler implements CompletionHandler<Integer, ByteBuffer>
             MsgHeader header = new MsgHeader(msg);
             int opcode = header.getOpCode();
             LOGGER.info("Opcode {}, header is {}", OpCode.getOpcodeName(opcode), header);
+            
+            //转发到 服务器，然后得到服务器的返回值，再返回给 客户端
+            exchangeMessage(msg);
+            
         }
 
     }
@@ -72,6 +78,30 @@ public class ClientReadHandler implements CompletionHandler<Integer, ByteBuffer>
         LOGGER.info("read fail");
 
         ByteBufferUtils.print(attachment);
+    }
+    
+    /**
+     * <br>把数据转发到 服务器，然后得到服务器的返回值，再返回给 客户端
+     * @param msg
+     * @author YellowTail
+     * @since 2019-02-01
+     */
+    private void exchangeMessage(byte[] msg) {
+        MyChannel myChannel = SocketPoolService.getAFreeChannel();
+        
+        if (null == myChannel) {
+            //没有空闲的，随机挑一个，排队
+            myChannel = SocketPoolService.getARandomChannel();
+        }
+        
+        AsynchronousSocketChannel serverChannel = myChannel.getChannel();
+        
+        ByteBuffer writeBuffer = ByteBuffer.wrap(msg);
+        
+        //直接写，暂时不关心何时写完
+        channel.write(writeBuffer);
+        
+        channel.write(writeBuffer, writeBuffer, new ServerWriteHandler(channel, serverChannel));
     }
 
     /**
