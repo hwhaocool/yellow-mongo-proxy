@@ -7,13 +7,13 @@ import java.nio.channels.CompletionHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class WriteHandler implements CompletionHandler<Integer, ByteBuffer>  {
+public class ClientWriteHandler implements CompletionHandler<Integer, ByteBuffer>  {
     
-    private final Logger LOGGER = LoggerFactory.getLogger(WriteHandler.class);
+    private final Logger LOGGER = LoggerFactory.getLogger(ClientWriteHandler.class);
     
     private AsynchronousSocketChannel channel;
     
-    public WriteHandler(AsynchronousSocketChannel channel) {
+    public ClientWriteHandler(AsynchronousSocketChannel channel) {
         this.channel = channel;
     }
     
@@ -30,7 +30,7 @@ public class WriteHandler implements CompletionHandler<Integer, ByteBuffer>  {
             ByteBuffer readBuffer = ByteBuffer.allocate(1024);
             
             //异步读  第三个参数为接收消息回调的业务Handler
-            channel.read(readBuffer, readBuffer, new ReadHandler(channel));
+            channel.read(readBuffer, readBuffer, new ClientReadHandler(channel));
         }
     }
 

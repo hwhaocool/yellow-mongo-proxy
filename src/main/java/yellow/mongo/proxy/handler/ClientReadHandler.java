@@ -11,14 +11,14 @@ import yellow.mongo.proxy.model.MsgHeader;
 import yellow.mongo.proxy.model.OpCode;
 import yellow.mongo.proxy.utils.ByteBufferUtils;
 
-public class ReadHandler implements CompletionHandler<Integer, ByteBuffer> {
+public class ClientReadHandler implements CompletionHandler<Integer, ByteBuffer> {
 
-    private final Logger LOGGER = LoggerFactory.getLogger(ReadHandler.class);
+    private final Logger LOGGER = LoggerFactory.getLogger(ClientReadHandler.class);
 
     // 用于读取半包消息和发送应答
     private AsynchronousSocketChannel channel;
 
-    public ReadHandler(AsynchronousSocketChannel channel) {
+    public ClientReadHandler(AsynchronousSocketChannel channel) {
         this.channel = channel;
     }
 
@@ -43,7 +43,7 @@ public class ReadHandler implements CompletionHandler<Integer, ByteBuffer> {
 
             ByteBuffer writeBuffer = ByteBuffer.wrap(new byte[] { 5, 0 });
 
-            channel.write(writeBuffer, writeBuffer, new WriteHandler(channel));
+            channel.write(writeBuffer, writeBuffer, new ClientWriteHandler(channel));
 
         } else if (10 == readNum) {
             // 如果是 10个字节，代表此处是 客户端开始发送具体的请求
@@ -56,7 +56,7 @@ public class ReadHandler implements CompletionHandler<Integer, ByteBuffer> {
 
             LOGGER.info("remote ip is {}, port is {}", ip, clientUseDstPort);
 
-            channel.write(writeBuffer, writeBuffer, new WriteHandler(channel));
+            channel.write(writeBuffer, writeBuffer, new ClientWriteHandler(channel));
 
         } else {
             // 正常的消息
