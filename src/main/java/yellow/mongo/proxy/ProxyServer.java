@@ -1,14 +1,26 @@
 package yellow.mongo.proxy;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.channels.AsynchronousChannelGroup;
+import java.nio.channels.AsynchronousServerSocketChannel;
+import java.nio.channels.AsynchronousSocketChannel;
+import java.nio.channels.CompletionHandler;
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetEncoder;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +36,7 @@ import yellow.mongo.proxy.constant.ProxyConstant;
 import yellow.mongo.proxy.model.Address;
 import yellow.mongo.proxy.model.ProxyConfig;
 import yellow.mongo.proxy.service.ConnectionHandlerService;
+import yellow.mongo.proxy.service.ConnectionHandlerServiceV2;
 import yellow.mongo.proxy.service.SocketPoolService;
 
 
@@ -38,7 +51,8 @@ public class ProxyServer implements ApplicationRunner {
     
     private ProxyConfig config;
     
-    private SocketPoolService socketPoolService;
+    private static Charset charset = Charset.forName("US-ASCII");
+    private static CharsetEncoder encoder = charset.newEncoder();
 
 //    private String mongo_ip = "119.23.235.71";
 //    private int mongo_port = 27017;
@@ -59,8 +73,17 @@ public class ProxyServer implements ApplicationRunner {
             throw new IllegalArgumentException("addressList is empty");
         }
         
-        socketPoolService = new SocketPoolService(addressList, config.getDstConNum(), config.getThreadsNum());
-        socketPoolService.connection();
+        SocketPoolService.setAddressList(addressList);
+        SocketPoolService.setTotalConNum(config.getDstConNum());
+        SocketPoolService.setThreadNum(config.getThreadsNum());
+        
+//        SocketPoolService.connection();
+        
+        aio();
+    }
+    
+    public void bio() throws Exception {
+        
         
         //开启监听端口
         List<Integer> proxyPortList = config.getProxyPortList();
@@ -68,6 +91,41 @@ public class ProxyServer implements ApplicationRunner {
         for (Integer port : proxyPortList) {
             new Thread( new ProxyService(port) ).run();
         }
+    }
+    
+    public void aio() {
+        LOGGER.info("use AIO mode");
+        
+        //1. 新建通道组(将线程池绑定到通道组上)
+        try {
+            AsynchronousChannelGroup group = AsynchronousChannelGroup.withThreadPool(
+                    SocketPoolService.getExecutorService());
+            
+            List<Integer> proxyPortList = config.getProxyPortList();
+            
+            //多个端口
+            for (Integer port : proxyPortList) {
+                
+                //2. 以指定的通道组开启异步ServerSocket 通道
+                AsynchronousServerSocketChannel server =   AsynchronousServerSocketChannel.open(group);
+                
+                //3. 绑定到端口上
+                server.bind(new InetSocketAddress(port));
+                LOGGER.info("start listen port at {}", port);
+                
+                //4. 初始化 处理类
+                ConnectionHandlerServiceV2 handlerServiceV2 = new ConnectionHandlerServiceV2();
+                handlerServiceV2.setServer(server);
+                
+                //5. 开始监听
+                server.accept(null, handlerServiceV2);
+                
+            }
+            
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        
     }
     
     private void handleArgs(ApplicationArguments args) {
@@ -131,7 +189,7 @@ public class ProxyServer implements ApplicationRunner {
                     LOGGER.info("Connected from {}", client.getRemoteSocketAddress());
                     LOGGER.info("Connected from {}", client.getInetAddress());
                     
-                    socketPoolService.proxy(client);
+//                    socketPoolService.proxy(client);
                 }
 
             } catch (IOException ex) {
