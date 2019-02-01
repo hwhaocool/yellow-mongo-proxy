@@ -4,38 +4,22 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
 import java.nio.channels.AsynchronousChannelGroup;
 import java.nio.channels.AsynchronousServerSocketChannel;
-import java.nio.channels.AsynchronousSocketChannel;
-import java.nio.channels.CompletionHandler;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetEncoder;
 import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
-import org.springframework.boot.CommandLineRunner;
-import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
-import yellow.mongo.proxy.config.Config;
 import yellow.mongo.proxy.constant.ProxyConstant;
 import yellow.mongo.proxy.model.Address;
 import yellow.mongo.proxy.model.ProxyConfig;
-import yellow.mongo.proxy.service.ConnectionHandlerService;
 import yellow.mongo.proxy.service.ConnectionHandlerServiceV2;
 import yellow.mongo.proxy.service.SocketPoolService;
 
@@ -77,7 +61,7 @@ public class ProxyServer implements ApplicationRunner {
         SocketPoolService.setTotalConNum(config.getDstConNum());
         SocketPoolService.setThreadNum(config.getThreadsNum());
         
-//        SocketPoolService.connection();
+        SocketPoolService.connection();
         
         aio();
     }

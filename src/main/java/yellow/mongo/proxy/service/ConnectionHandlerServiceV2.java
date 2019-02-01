@@ -9,7 +9,7 @@ import java.nio.channels.CompletionHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import yellow.mongo.proxy.handler.ReadHandler;
+import yellow.mongo.proxy.handler.ClientReadHandler;
 
 public class ConnectionHandlerServiceV2 implements CompletionHandler<AsynchronousSocketChannel, Void> {
     
@@ -35,7 +35,7 @@ public class ConnectionHandlerServiceV2 implements CompletionHandler<Asynchronou
         
         ByteBuffer byteBuffer = ByteBuffer.allocate(2048);
         
-        result.read(byteBuffer, byteBuffer, new ReadHandler(result));
+        result.read(byteBuffer, byteBuffer, new ClientReadHandler(result));
         
     }
 
